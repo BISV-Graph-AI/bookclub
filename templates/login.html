@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block body %}
+ {# Flashing message start here #}
+ {% for message in get_flashed_messages(request) %}
+ <div class="{{ message.category }}">{{ message.message }}</div>
+ {% endfor %}
+ {# Flashing message ends here #}
+ <form action="{{ url_for('login') }}" method="post">
+ <table>
+ <tr>
+ <td>Username</td>
+ <td><input type="text" name="username" id=""></td>
+ </tr>
+ <tr>
+ <td>Password</td>
+ <td><input type="password" name="password" id=""></td>
+ </tr>
+ <tr>
+ <td colspan="2">
+ <input type="submit" value="Login">
+ </td>
+ </tr>
+ </table>
+ </form>
+{% endblock body %}
