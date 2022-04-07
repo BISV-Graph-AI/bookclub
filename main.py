@@ -1,41 +1,52 @@
-from fastapi import FastAPI, Request, Form
-from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
-from starlette.templating import Jinja2Templates
-from starlette.middleware import Middleware
-from starlette.middleware.sessions import SessionMiddleware
-import typing
+from database import get_db
+from fastapi import FastAPI, Depends
+import logging
+
+import os
+from sqlalchemy.orm import Session
+from starlette.responses import FileResponse
+from typing import Optional
+
+from models.Book import Book
+from models.Course import Course 
+from models.Gradedepartment import Gradedepartment
+
+from schemas.Book import Book as SchemaBook
+from schemas.Course import Course as SchemaCourse
+from schemas.Gradedepartment import Gradedepartment as SchemaGradedepartment
 
 
-def flash(request: Request, message: typing.Any, category: str = "primary") -> None:
-   if "_messages" not in request.session:
-       request.session["_messages"] = []
-       request.session["_messages"].append({"message": message, "category": category})
+PATH = os.path.dirname(os.path.abspath(__file__))
 
-def get_flashed_messages(request: Request):
-   print(request.session)
-   return request.session.pop("_messages") if "_messages" in request.session else []
-
-middleware = [
- Middleware(SessionMiddleware, secret_key='super-secret')
-]
-app = FastAPI(middleware=middleware)
-
-app.mount("/static/", StaticFiles(directory='static', html=True), name="static")
-templates = Jinja2Templates(directory="templates")
-templates.env.globals['get_flashed_messages'] = get_flashed_messages
+app = FastAPI()
 
 
-@app.get("/login/", response_class=HTMLResponse)
-async def login_form(request: Request):
-   return templates.TemplateResponse("login.html", {"request": request})
+@app.get("/")
+def get_index():
+    return FileResponse(os.path.join(PATH, 'templates', 'index.html'))
 
-@app.post("/login/", response_class=HTMLResponse)
-async def login(request: Request, username: str = Form(...), password: str = Form(...)):
-   if username == "test" and password == "test":
-       flash(request, "Login Successful", "success")
-       return templates.TemplateResponse("login.html", {"request": request})
-   flash(request, "Failed to login", "danger")
-   return templates.TemplateResponse("login.html", {"request": request})
 
+@app.get("/books/")
+def get_all_books(db: Session = Depends(get_db)):
+    return db.query(Book).all()
+
+@app.get("/books/{id}")
+def get_book_by_id(id: int, db: Session = Depends(get_db)):
+    return db.query(Book).filter(Book.id == id).first()
+
+@app.get("/courses/")
+def get_all_courses(db: Session = Depends(get_db)):
+    return db.query(Course).all()
+
+@app.get("/courses/{id}")
+def get_course_by_id(id: int, db: Session = Depends(get_db)):
+    return db.query(Course).filter(Course.id == id).first()
+
+@app.get("/gradedepartments/")
+def get_all_gradedepartments(db: Session = Depends(get_db)):
+    return db.query(Gradedepartment).all()
+
+@app.get("/gradedepartments/{id}")
+def get_gradedepartment_by_id(id: int, db: Session = Depends(get_db)):
+    return db.query(Gradedepartment).filter(Gradedepartment.id == id).first()
 

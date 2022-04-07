@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://neo4j-documentation.github.io/developer-resources/language-guides/assets/css/main.css">
+    <title>Book Exchange Club</title>
+</head>
+
+<body>
+<div id="graph">
+</div>
+<div role="navigation" class="navbar navbar-default navbar-static-top">
+    <div class="container">
+        <div class="row">
+            <div class="navbar-header col-sm-3 col-md-3">
+                <div class="navbar-brand">
+                    <div class="brand">Book Exchange Club</div>
+                </div>
+            </div>
+
+            <div class="col-sm-3 col-md-3">
+                <ul class="nav navbar-nav">
+                    <li>
+                        <form role="search" class="navbar-form" id="search">
+                            <div class="form-group">
+                                <input type="text" value="" placeholder="Search for Books" class="form-control" name="search">
+                            </div>
+                            <button class="btn btn-default" type="submit">Search</button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+            <div class="col-sm-4 col-md-4">
+                <ul class="nav navbar-nav">
+                    <li>
+                        <form role="booklist" class="navbar-form" id="booklist">
+                            <div class="form-group">
+
+<label for="grades">Choose a Grade or Department:</label>
+<select name="GradeDepartment" id="GradeDepartment">
+  <option value="1">5th</option>
+  <option value="2">6th</option>
+  <option value="3">7th</option>
+  <option value="4">8th</option>
+  <option value="5">Upper School PostAP and Capstone</option>
+  <option value="6">Upper School Electives</option>
+  <option value="7">Upper School English</option>
+  <option value="8">Upper School Foreign Language</option>
+  <option value="9">Upper School History</option>
+  <option value="10" selected>Math</option>
+  <option value="11">Upper School Science</option>
+</select>
+
+<div id="course_list">
+</div>
+
+                            </div>
+                            <button class="btn btn-default" type="submit">List</button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">Search Results</div>
+            <table id="results" class="table table-striped table-hover">
+                <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Author</th>
+                    <th>Publisher</th>
+                    <th>ISBN</th>
+                    <th>Requirement</th>
+                    <th>New Print Price</th>
+                    <th>Cover</th>
+                </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<style type="text/css">
+    .node { stroke: #222; stroke-width: 1.5px; }
+    .node.actor { fill: #888; }
+    .node.movie { fill: #BBB; }
+    .link { stroke: #999; stroke-opacity: .6; stroke-width: 1px; }
+</style>
+
+<script type="text/javascript" src="//code.jquery.com/jquery-1.11.0.min.js"></script>
+<script src="https://d3js.org/d3.v3.min.js" type="text/javascript"></script>
+<script type="text/javascript">
+    $(function () {
+        function showBook(Title) {
+            $.get("/book/" + encodeURIComponent(Title),
+                    function (data) {
+                        if (!data) return;
+                        $("#Title").text(data.Title);
+                        $("#poster").attr("src", data.Image);
+                        const $list = $("#crew").empty();
+                        data.cast.forEach(function (cast) {
+                            $list.append($("<li>" + cast.name + " " +cast.job + (cast.job == "acted"?" as " + cast.role : "") + "</li>"));
+                        });
+                        $("#buy")
+                            .unbind("click")
+                            .click(function () {
+                                buyBook(data.Title)
+                            })
+                    }, "json");
+            return false;
+        }
+
+        function search(showFirst = true) {
+            var query=$("#search").find("input[name=search]").val();
+            $.get("/search?q=" + encodeURIComponent(query),
+                    function (data) {
+                        var t = $("table#results tbody").empty();
+                        if (!data || data.length == 0) return;
+                        data.forEach(function (book, index) {
+                            $("<tr><td class='book'>" + book.Title
+                                + "</td><td>" + book.Author 
+                                + "</td><td>" + book.Publisher 
+                                + "</td><td id='isbn'>" + book['ISBN-13']
+                                + "</td><td>" + book.Requirement
+                                + "</td><td>" + book.Price
+                                + "</td><td><img src=\"" + book.Image
+                                + "\"></td></tr>").appendTo(t)
+                                    .click(function() { showBook($(this).find("td#isbn").text());})
+                        });
+
+                        if (showFirst) {
+                            showBook(data[0].Title);
+                        }
+                    }, "json");
+            return false;
+        }
+
+        $("#GradeDepartment").on("change", function(){
+            var selected = $(this).val();
+            listcourses(selected);
+        })
+
+        function listcourses(grade){
+            $.get("/courses?grade=" + encodeURIComponent(grade),
+                    function (data) {
+                        var t = $("div#course_list").empty();
+                        if (!data || data.length == 0) return;
+                        data.forEach(function (course, index) {
+                            $('<input class="courseselection" type="checkbox" name="course[]" value="' + course.id + '" id="' + course.id + '" placeholder="" /><label for="' + course.id + '"> ' + course.name + "</label><br>").appendTo(t);
+                        });
+                    }, "json");
+            return false;
+        }
+
+
+        function booklist(showFirst = true) {
+            var grade=$("#booklist").find("select[name=GradeDepartment]").val();
+
+            var checkboxValues = [];
+            $('input[type="checkbox"]:checked').each(
+              function(index, elem) {
+                checkboxValues.push($(elem).val());
+              });
+            var courses = checkboxValues.join(',');
+
+            $.get("/books?grade=" + encodeURIComponent(grade) + "&courses=" + encodeURIComponent(courses),
+                    function (data) {
+                        showbooks(data);
+                    }, "json");
+            return false;
+        }
+
+        function showbooks(data) {
+                        var t = $("table#results tbody").empty();
+                        if (!data || data.length == 0) return;
+                        data.forEach(function (book, index) {
+                            $("<tr><td class='book'>" + book.Title
+                                + "</td><td>" + book.Author
+                                + "</td><td>" + book.Publisher
+                                + "</td><td id='isbn'>" + book['ISBN-13']
+                                + "</td><td>" + book.Requirement
+                                + "</td><td>" + book.Price
+                                + "</td><td><img src=\"" + book.Image
+                                + "\"></td></tr>").appendTo(t)
+                                    .click(function() { showBook($(this).find("td#isbn").text());})
+                        });
+        }
+
+        function buyBook(Title) {
+            $.post("/book/" + encodeURIComponent(Title) + "/buy", () => {
+                search(false);
+                showBook(Title);
+            });
+        }
+
+        $("#search").submit(search);
+        $("#booklist").submit(booklist);
+        search();
+        booklist();
+    })
+</script>
+
+<script type="text/javascript">
+    const width = 800, height = 800;
+
+    const force = d3.layout.force()
+            .charge(-200).linkDistance(30).size([width, height]);
+
+    const svg = d3.select("#graph").append("svg")
+            .attr("width", "100%").attr("height", "100%")
+            .attr("pointer-events", "all");
+
+    d3.json("/graph", function(error, graph) {
+		if (error) return;
+
+        force.nodes(graph.nodes).links(graph.links).start();
+
+        const link = svg.selectAll(".link")
+                .data(graph.links).enter()
+                .append("line").attr("class", "link");
+
+        const node = svg.selectAll(".node")
+                .data(graph.nodes).enter()
+                .append("circle")
+                .attr("class", function (d) { return "node "+d.label })
+                .attr("r", 10)
+                .call(force.drag);
+
+        // html title attribute
+        node.append("Title")
+                .text(function (d) { return d.Title; })
+
+        // force feed algo ticks
+        force.on("tick", function() {
+            link.attr("x1", function(d) { return d.source.x; })
+                    .attr("y1", function(d) { return d.source.y; })
+                    .attr("x2", function(d) { return d.target.x; })
+                    .attr("y2", function(d) { return d.target.y; });
+
+            node.attr("cx", function(d) { return d.x; })
+                    .attr("cy", function(d) { return d.y; });
+        });
+    });
+</script>
+</body>
+</html>
