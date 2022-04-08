@@ -1,4 +1,4 @@
-from database import get_db
+from database import *
 from fastapi import FastAPI, Depends
 import logging
 
@@ -24,6 +24,17 @@ app = FastAPI()
 @app.get("/")
 def get_index():
     return FileResponse(os.path.join(PATH, 'templates', 'index.html'))
+
+@app.get("/test")
+def test():
+    header = 'id,title'
+    header_array = header.split(',')
+    results = get_results("SELECT " + header + " FROM books WHERE id = 1")
+    ret = {}
+    for result in results:
+        for col_index, col in enumerate(result):
+            ret[header_array[col_index]] = col 
+    return ret
 
 
 @app.get("/books/")

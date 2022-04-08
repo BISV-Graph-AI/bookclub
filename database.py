@@ -1,5 +1,6 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.sql import text
 from sqlalchemy.orm import sessionmaker
 import os
 
@@ -18,5 +19,32 @@ def get_db():
     try:
         yield db
     except Exception as err:
-        print(str(err))
+        print('get_db Exception: ' + str(err))
         db.close()
+
+def get_engine_connect():
+    engine_connect = None
+    try:
+        engine_connect = engine.connect() 
+    except Exception as err:
+        print('get_engine_connect Exception: ' + str(err))
+        engine_connect = None
+    return engine_connect
+
+def get_results(query):
+    results = []
+    try:
+        engine_connect = get_engine_connect()
+        if (engine_connect is not None):
+            with engine_connect as con:
+                #print(query)
+                statement = text(query)
+                results = con.execute(statement)
+                #print(type(results))
+                #for row in results:
+                #    print(row)
+                #    print(type(row))
+    except Exception as err:
+        print('get_results Exception: ' + str(err))
+        results = [] 
+    return results
