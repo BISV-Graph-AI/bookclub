@@ -24,8 +24,6 @@
 
     <script type="text/javascript" src="//code.jquery.com/jquery-1.11.0.min.js"></script>
     <script type="text/javascript" src="https://d3js.org/d3.v3.min.js"></script>
-    <script type='text/javascript' src="https://raw.githubusercontent.com/BISV-Graph-AI/bookclub/main/static/jquery_mycart.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
 
     <title>Book Exchange Club</title>
 </head>
@@ -110,6 +108,7 @@
                     <th>Requirement</th>
                     <th>New Print Price</th>
                     <th>Cover</th>
+                    <th></th>
                 </tr>
                 </thead>
                 <tbody>
@@ -169,43 +168,7 @@
             booklist(false);
             return false;
         }
-
-        function showbooks(data) {
-            var t = $("table#results tbody").empty();
-            if (!data || data.length == 0) return;
-            data.forEach(function (book, index) {
-                var booknum = index + 1;
-                $("<tr><td>" + booknum 
-                    + "</td><td class='book'>" + book.title
-                    + "</td><td>" + book.author
-                    + "</td><td>" + book.publisher
-                    + "</td><td id='isbn'>" + book['isbn13']
-                    + "</td><td>" + book.requirement
-                    + "</td><td>" + book.price
-                    + "</td><td><img src=\"" + book.image
-                    + "\"></td></tr>").appendTo(t);
-                 });
-        }
-
-        $("#search").submit(search);
-        $("#booklist").submit(booklist);
-        search();
-        booklist();
-
-    var goToCartIcon = function($addTocartBtn){
-      var $cartIcon = $(".my-cart-icon");
-      var $image = $('<img width="30px" height="30px" src="' + $addTocartBtn.data("image") + '"/>').css({"position": "fixed", "z-index": "999"});
-      $addTocartBtn.prepend($image);
-      var position = $cartIcon.position();
-      $image.animate({
-        top: position.top,
-        left: position.left
-      }, 500 , "linear", function() {
-        $image.remove();
-      });
-    }
-
-    $('.my-cart-btn').myCart({
+    var defaultCartParams = {
       classCartIcon: 'my-cart-icon',
       classCartBadge: 'my-cart-badge',
       classProductQuantity: 'my-product-quantity',
@@ -226,31 +189,62 @@
         console.log("calculating discount", products, totalPrice, totalQuantity);
         return totalPrice * 0.5;
       }
-    });
+      };
+
+
+    var goToCartIcon = function($addTocartBtn){
+      var $cartIcon = $(".my-cart-icon");
+      var $image = $('<img width="30px" height="30px" src="' + $addTocartBtn.data("image") + '"/>').css({"position": "fixed", "z-index": "999"});
+      $addTocartBtn.prepend($image);
+      var position = $cartIcon.position();
+      $image.animate({
+        top: position.top,
+        left: position.left
+      }, 500 , "linear", function() {
+        $image.remove();
+      });
+    }
+
+    $('.my-cart-btn').myCart(defaultCartParams);
+
+        function showbooks(data) {
+            var t = $("table#results tbody").empty();
+            if (!data || data.length == 0) return;
+            data.forEach(function (book, index) {
+                var booknum = index + 1;
+                var $td = $('<td id="' + book.isbn13 + '"></td>');
+                var $cartimage = $('<button class="btn btn-danger my-cart-btn" data-id="' + booknum + '" data-name="' 
+                    + book.title + '" data-summary="" data-price="'
+                    + book.price + '" data-quantity="1" data-image="' + book.image + '">Add to Cart</button>').myCart(defaultCartParams);
+                $td.append($cartimage);
+ 
+                var $row = $("<tr><td>" + booknum 
+                    + "</td><td class='book'>" + book.title
+                    + "</td><td>" + book.author
+                    + "</td><td>" + book.publisher
+                    + "</td><td id='isbn'>" + book.isbn13
+                    + "</td><td>" + book.requirement
+                    + "</td><td>" + book.price
+                    + "</td><td><img src=\"" + book.image + "\">"
+                    + "</td></tr>");
+                $row.append($td); 
+                $row.appendTo(t);
+           });
+
+        }
+
+        $("#search").submit(search);
+        $("#booklist").submit(booklist);
+        search();
+        booklist();
 
     })
 </script>
 
 
-  <div class="row">
-    <div class="col-md-3 text-center">
-      <img src="images/img_1.png" width="150px" height="150px">
-      <br>
-      product 1 - <strong>$10</strong>
-      <br>
-      <button class="btn btn-danger my-cart-btn" data-id="1" data-name="product 1" data-summary="summary 1" data-price="10" data-quantity="1" data-image="images/img_1.png">Add to Cart</button>
-      <a href="#" class="btn btn-info">Details</a>
-    </div>
-
-    <div class="col-md-3 text-center">
-      <img src="images/img_2.png" width="150px" height="150px">
-      <br>
-      product 2 - <strong>$20</strong>
-      <br>
-      <button class="btn btn-danger my-cart-btn" data-id="2" data-name="product 2" data-summary="summary 2" data-price="20" data-quantity="1" data-image="images/img_2.png">Add to Cart</button>
-      <a href="#" class="btn btn-info">Details</a>
-    </div>
-  </div>
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+<script type="text/javascript" src="{{ url_for('static', path='/jquery_mycart.js') }}"></script>
 
 </body>
 </html>

@@ -1,5 +1,10 @@
 from database import *
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Request
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+
+from fastapi.templating import Jinja2Templates
+
 import logging
 
 import os
@@ -20,7 +25,10 @@ PATH = os.path.dirname(os.path.abspath(__file__))
 BOOK_HEADER = 'title,author,publisher,isbn13,requirement,price,image'
 BOOK_HEADER_ARRAY = BOOK_HEADER.split(',')
 
+
 app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
 
 
 def book_retrieve_util(query):
@@ -35,8 +43,9 @@ def book_retrieve_util(query):
     return ret_list
 
 @app.get("/")
-def get_index():
-    return FileResponse(os.path.join(PATH, 'templates', 'index.html'))
+def get_index(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
+    #return FileResponse(os.path.join(PATH, 'templates', 'index.html'))
 
 @app.get("/books")
 def get_all_books(g: int, c: str):
