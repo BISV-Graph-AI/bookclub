@@ -31,7 +31,8 @@
         <div class="row">
             <div class="navbar-header col-sm-3 col-md-3">
                 <div class="navbar-brand">
-                    <div class="brand">Book Exchange Club</div>
+                    <div class="brand">Book Exchange Club</div><br />
+                    <button id="showallbooks" type="submit">Show All Books</button>
                 </div>
             </div>
 
@@ -125,6 +126,7 @@
 <script type="text/javascript" src="//code.jquery.com/jquery-1.11.0.min.js"></script>
 <script src="https://d3js.org/d3.v3.min.js" type="text/javascript"></script>
 <script type="text/javascript">
+
     var isbn_dict = {};
         function add_isbn(isbn13) {
            let ischecked = $('#' + isbn13).prop('checked');
@@ -164,6 +166,14 @@
     });
 
     $(function () {
+        $('#showallbooks').click(function() {showallbooks();});
+        function showallbooks() {
+            $.get("/search?q=",
+                function (data) {
+                    showbooks(data);
+                }, "json");
+            return false;
+        }
 
         function showbooks(data) {
             var t = $("table#results tbody").empty();
