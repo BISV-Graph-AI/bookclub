@@ -1,5 +1,5 @@
 from database import *
-from fastapi import FastAPI, Depends, Request
+from fastapi import FastAPI, Depends, Form, Request, File, UploadFile
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -13,10 +13,12 @@ from starlette.responses import FileResponse
 from typing import Optional
 
 from models.Book import Book
+from models.Bookinquiries import Bookinquiries
 from models.Course import Course 
 from models.Gradedepartment import Gradedepartment
 
 from schemas.Book import Book as SchemaBook
+from schemas.Bookinquiries import Bookinquiries as SchemaBookinquiries
 from schemas.Course import Course as SchemaCourse
 from schemas.Gradedepartment import Gradedepartment as SchemaGradedepartment
 
@@ -67,7 +69,7 @@ def search_books(q: str):
     FROM BOOKS
     """.format(BOOK_HEADER)
     if (q is not None and len(q) > 2):
-        query += "WHERE TITLE ILIKE '%" + q + "%'"
+        query += " WHERE TITLE ILIKE '%" + q + "%' "
     query += ';'
     return book_retrieve_util(query)
 
@@ -86,13 +88,14 @@ def get_course_by_id(id: int, db: Session = Depends(get_db)):
 
 @app.get("/courses_by_gdid/{gdid}")
 def get_courses_by_gdid(gdid: int, db: Session = Depends(get_db)):
-    results = get_results("SELECT DISTINCT COURSES_ID, C.NAME FROM GDS_COURSES MAP JOIN COURSES C ON MAP.COURSES_ID = C.ID WHERE GRADEDEPARTMENTS_ID = " + str(gdid) + " ORDER BY 2;")
     ret_list = []
-    for result in results:
-        ret_dict = {}
-        ret_dict['id'] = result[0]
-        ret_dict['name'] = result[1]
-        ret_list.append(ret_dict)
+    results = get_results("SELECT DISTINCT COURSES_ID, C.NAME FROM GDS_COURSES MAP JOIN COURSES C ON MAP.COURSES_ID = C.ID WHERE GRADEDEPARTMENTS_ID = " + str(gdid) + " ORDER BY 2;")
+    if (results is not None):
+        for result in results:
+            ret_dict = {}
+            ret_dict['id'] = result[0]
+            ret_dict['name'] = result[1]
+            ret_list.append(ret_dict)
     return ret_list
 
 @app.get("/gradedepartments/")
@@ -103,3 +106,42 @@ def get_all_gradedepartments(db: Session = Depends(get_db)):
 def get_gradedepartment_by_id(id: int, db: Session = Depends(get_db)):
     return db.query(Gradedepartment).filter(Gradedepartment.id == id).first()
 
+def escape_single_quote(input_str):
+    return input_str.replace("'", "\'")
+ 
+@app.post("/saveinquires")
+def save_inquires(bookinquiries: SchemaBookinquiries):
+    ret = {
+        'id': 0,
+        'name': bookinquiries.name,
+        'email': bookinquiries.email,
+        'buyorsell': bookinquiries.buyorsell,
+        'isbn13s': bookinquiries.isbn13s 
+    }
+    try:
+        name = escape_single_quote(bookinquiries.name)
+        email = escape_single_quote(bookinquiries.email)
+        buyorsell = escape_single_quote(bookinquiries.buyorsell)
+        isbn13s = escape_single_quote(bookinquiries.isbn13s)
+
+        get_query = "SELECT id FROM bookinquiries WHERE email = '{}' AND buyorsell = '{}';".format(email, buyorsell)
+        insert_query = "INSERT INTO bookinquiries (name, email, buyorsell, isbn13s) VALUES ('{}', '{}', '{}', '{}');".format(name, email, buyorsell, isbn13s)
+        update_query = "UPDATE bookinquiries SET name = '{}', email = '{}', buyorsell = '{}', isbn13s = '{}' WHERE id = {};"
+        results = get_results(get_query)
+        total_result = 0
+        id = 0
+        try:
+            for row in results:
+                id = row[0]
+                total_result += 1
+        except Exception:
+            total_result = 0
+
+        if (total_result == 0):
+            insert_results = get_results(insert_query)
+        else:
+            update_results = get_results(update_query.format(name, email, buyorsell, isbn13s, str(id)))
+        ret['id'] = id
+    except Exception as err:
+        print('Exception: ' + str(err))
+    return ret 

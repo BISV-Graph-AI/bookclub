@@ -32,19 +32,14 @@ def get_engine_connect():
     return engine_connect
 
 def get_results(query):
-    results = []
+    results = None 
     try:
         engine_connect = get_engine_connect()
         if (engine_connect is not None):
-            with engine_connect as con:
-                #print(query)
+            with engine_connect as conn:
                 statement = text(query)
-                results = con.execute(statement)
-                #print(type(results))
-                #for row in results:
-                #    print(row)
-                #    print(type(row))
+                results = conn.execute(statement)
     except Exception as err:
         print('get_results Exception: ' + str(err))
-        results = [] 
+        results = None 
     return results
