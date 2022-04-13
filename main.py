@@ -54,7 +54,7 @@ def get_all_books(g: int, c: str):
     query = """
     SELECT DISTINCT {}
     FROM GDS_COURSES_BOOKS MAP
-    JOIN BOOKS B ON MAP.BOOKS_ID = B.ID 
+    JOIN BOOKS2021 B ON MAP.BOOKS_ID = B.ID 
     WHERE MAP.GRADEDEPARTMENTS_ID = {} 
     """.format(BOOK_HEADER, str(g))
     if (c.strip() != ''):
@@ -66,7 +66,7 @@ def get_all_books(g: int, c: str):
 def search_books(q: str):
     query = """
     SELECT DISTINCT {}
-    FROM BOOKS
+    FROM BOOKS2021
     """.format(BOOK_HEADER)
     if (q is not None and len(q) > 2):
         query += " WHERE TITLE ILIKE '%" + q + "%' "
